@@ -26,14 +26,44 @@ public class App {
 
             ActionListener onLogin = e -> {
                 LoginPanel login = loginHolder[0];
-                ScoreDatabase db = null;
                 try {
-                    db = new ScoreDatabase();
-                    db.savePlayer(login.getPlayerName(), login.getPlayerEmail(), login.getPlayerPhone());
+                    ScoreDatabase db = new ScoreDatabase();
+                    org.bson.Document player = db.authenticatePlayer(
+                            login.getPlayerEmail(), login.getPlayerPassword());
+                    if (player == null) {
+                        login.setError("Invalid email or password");
+                        return;
+                    }
+                    int level = player.getInteger("currentLevel", 1);
+                    login.setSessionPlayer(player.getString("name"), level);
+                    menuHolder[0].setPlayerName(player.getString("name"));
+                    menuHolder[0].setPlayerLevel(level);
+                } catch (Exception ex) {
+                    System.err.println("MongoDB not available: " + ex.getMessage());
+                    login.setSessionPlayer(login.getPlayerEmail(), 1);
+                    menuHolder[0].setPlayerName(login.getPlayerEmail());
+                    menuHolder[0].setPlayerLevel(1);
+                }
+                cardLayout.show(cardPanel, MENU_CARD);
+                SwingUtilities.invokeLater(() -> menuHolder[0].requestFocusInWindow());
+            };
+
+            ActionListener onSignup = e -> {
+                LoginPanel login = loginHolder[0];
+                try {
+                    ScoreDatabase db = new ScoreDatabase();
+                    if (db.emailExists(login.getPlayerEmail())) {
+                        login.setError("Email already registered. Please login.");
+                        return;
+                    }
+                    db.savePlayer(login.getPlayerName(), login.getPlayerEmail(),
+                            login.getPlayerPhone(), login.getPlayerPassword());
                 } catch (Exception ex) {
                     System.err.println("MongoDB not available: " + ex.getMessage());
                 }
+                login.setSessionPlayer(login.getPlayerName(), 1);
                 menuHolder[0].setPlayerName(login.getPlayerName());
+                menuHolder[0].setPlayerLevel(1);
                 cardLayout.show(cardPanel, MENU_CARD);
                 SwingUtilities.invokeLater(() -> menuHolder[0].requestFocusInWindow());
             };
@@ -46,16 +76,40 @@ public class App {
                         menu.getBirdImage(menu.getSelectedBird()),
                         menu.getBackgroundImage(menu.getSelectedBackground()),
                         login.getPlayerName(),
-                        login.getPlayerEmail()
+                        login.getPlayerEmail(),
+                        login.getPlayerLevel()
                 );
                 cardLayout.show(cardPanel, GAME_CARD);
                 SwingUtilities.invokeLater(() -> game.requestFocusInWindow());
             };
 
-            LoginPanel loginPanel = new LoginPanel(WIDTH, HEIGHT, onLogin);
+            ActionListener onLogout = e -> {
+                loginHolder[0].clearFields();
+                menuHolder[0].resetSelections();
+                cardLayout.show(cardPanel, LOGIN_CARD);
+                SwingUtilities.invokeLater(() -> loginHolder[0].focusFirstField());
+            };
+
+            ActionListener onGoToLogin = e -> {
+                loginHolder[0].clearFields();
+                loginHolder[0].switchToLogin();
+                menuHolder[0].resetSelections();
+                cardLayout.show(cardPanel, LOGIN_CARD);
+                SwingUtilities.invokeLater(() -> loginHolder[0].focusFirstField());
+            };
+
+            ActionListener onGoToSignup = e -> {
+                loginHolder[0].clearFields();
+                loginHolder[0].switchToSignup();
+                menuHolder[0].resetSelections();
+                cardLayout.show(cardPanel, LOGIN_CARD);
+                SwingUtilities.invokeLater(() -> loginHolder[0].focusFirstField());
+            };
+
+            LoginPanel loginPanel = new LoginPanel(WIDTH, HEIGHT, onLogin, onSignup);
             loginHolder[0] = loginPanel;
 
-            MenuPanel menuPanel = new MenuPanel(WIDTH, HEIGHT, onPlay);
+            MenuPanel menuPanel = new MenuPanel(WIDTH, HEIGHT, onPlay, onLogout, onGoToLogin, onGoToSignup);
             menuHolder[0] = menuPanel;
 
             FlappyBird gamePanel = new FlappyBird();
@@ -68,6 +122,7 @@ public class App {
                     int choice = JOptionPane.showOptionDialog(
                             frame,
                             "Game Over!\nPlayer: " + game.playerName +
+                                    "\nLevel: " + game.currentLevel +
                                     "\nScore: " + (int) game.score +
                                     "\nDuration: " + (game.gameDurationMs / 1000) + "s",
                             "Game Over",

@@ -37,24 +37,36 @@ public class ScoreDatabase {
         playersCollection = db.getCollection("players");
     }
 
-    public void savePlayer(String name, String email, String phone) {
+    public void savePlayer(String name, String email, String phone, String password) {
         Document existing = playersCollection.find(new Document("email", email)).first();
         if (existing != null) {
             playersCollection.updateOne(
                     new Document("email", email),
-                    new Document("$set", new Document("name", name).append("phone", phone))
+                    new Document("$set", new Document("name", name).append("phone", phone).append("password", password))
             );
         } else {
             Document doc = new Document("name", name)
                     .append("email", email)
                     .append("phone", phone)
+                    .append("password", password)
                     .append("gamesPlayed", 0)
                     .append("totalScore", 0)
                     .append("bestScore", 0)
                     .append("totalDuration", 0)
+                    .append("currentLevel", 1)
                     .append("createdAt", System.currentTimeMillis());
             playersCollection.insertOne(doc);
         }
+    }
+
+    public Document authenticatePlayer(String email, String password) {
+        return playersCollection.find(
+                new Document("email", email).append("password", password)
+        ).first();
+    }
+
+    public boolean emailExists(String email) {
+        return playersCollection.find(new Document("email", email)).first() != null;
     }
 
     public void saveScore(String playerName, String playerEmail, double score, long durationMs) {
@@ -68,6 +80,12 @@ public class ScoreDatabase {
         playersCollection.updateOne(
                 new Document("email", playerEmail),
                 new Document("$inc", new Document("gamesPlayed", 1).append("totalScore", (int) score).append("totalDuration", durationMs))
+        );
+
+        int finalLevel = (int) score / FlappyBird.SCORE_PER_LEVEL + 1;
+        playersCollection.updateOne(
+                new Document("email", playerEmail),
+                new Document("$max", new Document("currentLevel", Math.max(1, finalLevel)))
         );
 
         Document player = playersCollection.find(new Document("email", playerEmail)).first();
@@ -84,6 +102,21 @@ public class ScoreDatabase {
 
     public Document getPlayer(String email) {
         return playersCollection.find(new Document("email", email)).first();
+    }
+
+    public int getPlayerLevel(String email) {
+        Document player = playersCollection.find(new Document("email", email)).first();
+        if (player != null) {
+            return Math.max(1, player.getInteger("currentLevel", 1));
+        }
+        return 1;
+    }
+
+    public void saveLevel(String email, int level) {
+        playersCollection.updateOne(
+                new Document("email", email),
+                new Document("$max", new Document("currentLevel", Math.max(1, level)))
+        );
     }
 
     public List<Document> getTopScores(int limit) {

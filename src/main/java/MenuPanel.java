@@ -12,8 +12,8 @@ public class MenuPanel extends JPanel implements KeyListener {
 
     private final Image[] birdImages;
     private final Image[] backgroundImages;
-    private final String[] birdNames = {"Bird 1", "Bird 2", "Bird 3", "Bird 4", "Bird 5", "Bird 6"};
-    private final String[] bgNames = {"Sky", "Sunset", "Night", "City", "Forest", "Ocean"};
+    private final String[] birdNames = {"Yellow", "Blue", "Green", "Pink", "Orange", "Blue"};
+    private final String[] bgNames = {"Sky", "Night", "Sunset", "City", "Forest", "Desert"};
 
     private static final Color BG_COLOR = new Color(45, 52, 54);
     private static final Color ACCENT_COLOR = new Color(116, 185, 255);
@@ -21,6 +21,8 @@ public class MenuPanel extends JPanel implements KeyListener {
     private static final Color PANEL_BG = new Color(57, 66, 69);
     private static final Color SELECTED_BORDER = new Color(253, 203, 110);
     private static final Color FOCUS_COLOR = new Color(46, 213, 115);
+    private static final Color MUTED_TEXT = new Color(178, 190, 195);
+    private static final Color NAV_BTN_COLOR = new Color(99, 110, 114);
 
     private final JLabel birdNameLabel;
     private final JLabel bgNameLabel;
@@ -28,13 +30,20 @@ public class MenuPanel extends JPanel implements KeyListener {
     private final JLabel hintLabel;
 
     private final ActionListener onPlay;
+    private final ActionListener onLogout;
 
-    public MenuPanel(int width, int height, ActionListener onPlay) {
+    private String playerName = "";
+    private int playerLevel = 1;
+
+    public MenuPanel(int width, int height, ActionListener onPlay, ActionListener onLogout,
+                     ActionListener onGoToLogin, ActionListener onGoToSignup) {
         this.onPlay = onPlay;
+        this.onLogout = onLogout;
         setPreferredSize(new Dimension(width, height));
         setLayout(null);
         setBackground(BG_COLOR);
         setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
         addKeyListener(this);
 
         birdImages = new Image[]{
@@ -57,47 +66,79 @@ public class MenuPanel extends JPanel implements KeyListener {
 
         int centerX = width / 2;
 
+        JButton loginNavBtn = new JButton("Login");
+        loginNavBtn.setBounds(centerX - 110, 8, 90, 28);
+        loginNavBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        loginNavBtn.setBackground(NAV_BTN_COLOR);
+        loginNavBtn.setForeground(MUTED_TEXT);
+        loginNavBtn.setFocusPainted(false);
+        loginNavBtn.setBorder(BorderFactory.createEmptyBorder());
+        loginNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        loginNavBtn.addActionListener(e -> onGoToLogin.actionPerformed(null));
+        add(loginNavBtn);
+
+        JButton signupNavBtn = new JButton("Signup");
+        signupNavBtn.setBounds(centerX + 20, 8, 90, 28);
+        signupNavBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        signupNavBtn.setBackground(NAV_BTN_COLOR);
+        signupNavBtn.setForeground(MUTED_TEXT);
+        signupNavBtn.setFocusPainted(false);
+        signupNavBtn.setBorder(BorderFactory.createEmptyBorder());
+        signupNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        signupNavBtn.addActionListener(e -> onGoToSignup.actionPerformed(null));
+        add(signupNavBtn);
+
         JLabel titleLabel = new JLabel("CUSTOMIZE YOUR GAME", SwingConstants.CENTER);
-        titleLabel.setBounds(0, 20, width, 45);
+        titleLabel.setBounds(0, 45, width, 45);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
         titleLabel.setForeground(ACCENT_COLOR);
         add(titleLabel);
 
         playerNameLabel = new JLabel("", SwingConstants.CENTER);
-        playerNameLabel.setBounds(0, 60, width, 25);
+        playerNameLabel.setBounds(0, 85, width, 25);
         playerNameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        playerNameLabel.setForeground(new Color(178, 190, 195));
+        playerNameLabel.setForeground(MUTED_TEXT);
         add(playerNameLabel);
 
         JLabel birdTitle = new JLabel("Select Bird", SwingConstants.CENTER);
-        birdTitle.setBounds(0, 100, width, 30);
+        birdTitle.setBounds(0, 120, width, 30);
         birdTitle.setFont(new Font("Arial", Font.BOLD, 22));
         birdTitle.setForeground(TEXT_COLOR);
         add(birdTitle);
 
         birdNameLabel = new JLabel(birdNames[selectedBird], SwingConstants.CENTER);
-        birdNameLabel.setBounds(0, 265, width, 25);
+        birdNameLabel.setBounds(0, 280, width, 25);
         birdNameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         birdNameLabel.setForeground(TEXT_COLOR);
         add(birdNameLabel);
 
         JLabel bgTitle = new JLabel("Select Background", SwingConstants.CENTER);
-        bgTitle.setBounds(0, 310, width, 30);
+        bgTitle.setBounds(0, 325, width, 30);
         bgTitle.setFont(new Font("Arial", Font.BOLD, 22));
         bgTitle.setForeground(TEXT_COLOR);
         add(bgTitle);
 
         bgNameLabel = new JLabel(bgNames[selectedBackground], SwingConstants.CENTER);
-        bgNameLabel.setBounds(0, 475, width, 25);
-        bgNameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        bgNameLabel.setBounds(0, 490, width, 30);
+        bgNameLabel.setFont(new Font("Arial", Font.BOLD, 22));
         bgNameLabel.setForeground(TEXT_COLOR);
         add(bgNameLabel);
 
-        hintLabel = new JLabel("Left/Right: change bird  |  Up/Down: change bg  |  Tab: switch section  |  Enter: play", SwingConstants.CENTER);
-        hintLabel.setBounds(0, height - 40, width, 25);
+        hintLabel = new JLabel("Left/Right: change bird  |  Tab: switch section  |  Enter/Space: play", SwingConstants.CENTER);
+        hintLabel.setBounds(0, height - 65, width, 25);
         hintLabel.setFont(new Font("Arial", Font.ITALIC, 13));
-        hintLabel.setForeground(new Color(178, 190, 195));
+        hintLabel.setForeground(MUTED_TEXT);
         add(hintLabel);
+
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.setBounds(width / 2 - 60, height - 38, 120, 30);
+        logoutButton.setFont(new Font("Arial", Font.BOLD, 14));
+        logoutButton.setBackground(new Color(255, 71, 87));
+        logoutButton.setForeground(TEXT_COLOR);
+        logoutButton.setFocusPainted(false);
+        logoutButton.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        logoutButton.addActionListener(e -> onLogout.actionPerformed(null));
+        add(logoutButton);
     }
 
     @Override
@@ -139,7 +180,7 @@ public class MenuPanel extends JPanel implements KeyListener {
             }
         }
 
-        if (key == KeyEvent.VK_ENTER) {
+        if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
             onPlay.actionPerformed(null);
             e.consume();
         }
@@ -156,11 +197,9 @@ public class MenuPanel extends JPanel implements KeyListener {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         int centerX = getWidth() / 2;
-        int selectorWidth = 180;
 
-        // Bird preview box
         int birdBoxX = centerX - 90;
-        int birdBoxY = 140;
+        int birdBoxY = 160;
         int birdBoxSize = 180;
 
         Color birdBorder = (focusedSection == 0) ? FOCUS_COLOR : SELECTED_BORDER;
@@ -174,17 +213,10 @@ public class MenuPanel extends JPanel implements KeyListener {
 
         g2.drawImage(birdImages[selectedBird], birdBoxX + 40, birdBoxY + 25, 100, 100, null);
 
-        if (focusedSection == 0) {
-            g2.setColor(FOCUS_COLOR);
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            g2.drawString("< " + birdNames[selectedBird] + " >", centerX - 45, birdBoxY + birdBoxSize + 25);
-        }
-
-        // Background preview box
         int bgBoxX = centerX - 90;
-        int bgBoxY = 350;
+        int bgBoxY = 365;
         int bgBoxW = 180;
-        int bgBoxH = 100;
+        int bgBoxH = 140;
 
         Color bgBorder = (focusedSection == 1) ? FOCUS_COLOR : SELECTED_BORDER;
         int bgStroke = (focusedSection == 1) ? 4 : 3;
@@ -196,12 +228,6 @@ public class MenuPanel extends JPanel implements KeyListener {
         g2.drawRoundRect(bgBoxX - 7, bgBoxY - 7, bgBoxW + 14, bgBoxH + 14, 15, 15);
 
         g2.drawImage(backgroundImages[selectedBackground], bgBoxX, bgBoxY, bgBoxW, bgBoxH, null);
-
-        if (focusedSection == 1) {
-            g2.setColor(FOCUS_COLOR);
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            g2.drawString("< " + bgNames[selectedBackground] + " >", centerX - 55, bgBoxY + bgBoxH + 22);
-        }
     }
 
     public int getSelectedBird() { return selectedBird; }
@@ -210,7 +236,19 @@ public class MenuPanel extends JPanel implements KeyListener {
     public Image getBackgroundImage(int index) { return backgroundImages[index]; }
 
     public void setPlayerName(String name) {
-        playerNameLabel.setText("Playing as: " + name);
+        this.playerName = name == null ? "" : name;
+        updatePlayerLabel();
+    }
+
+    public void setPlayerLevel(int level) {
+        this.playerLevel = Math.max(1, level);
+        updatePlayerLabel();
+    }
+
+    public int getPlayerLevel() { return playerLevel; }
+
+    private void updatePlayerLabel() {
+        playerNameLabel.setText("Playing as: " + playerName + "   |   Level: " + playerLevel);
     }
 
     public void resetSelections() {

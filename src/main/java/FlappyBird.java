@@ -8,7 +8,7 @@ import org.bson.Document;
 public class FlappyBird extends JPanel implements ActionListener, KeyListener {
 
     int bwidth = 700;
-    int bheight = 640;
+    int bheight = 700;
 
     Image backimg;
     Image birdimg;
@@ -55,6 +55,10 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     int velocityX = -4;
     int velocityY = 0;
     int gravity = 1;
+
+    public static final int SCORE_PER_LEVEL = 5;
+    int currentLevel = 1;
+    int levelUpFlash = 0;
 
     ArrayList<Pipe> pipes;
 
@@ -103,11 +107,14 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         this.onGameOverCallback = callback;
     }
 
-    public void setupGame(Image birdImg, Image bgImg, String name, String email) {
+    public void setupGame(Image birdImg, Image bgImg, String name, String email, int level) {
         this.birdimg = birdImg;
         this.backimg = bgImg;
         this.playerName = name;
         this.playerEmail = email;
+
+        this.currentLevel = Math.max(1, level);
+        velocityX = pipeSpeedForLevel(currentLevel);
 
         bird.x = birdx;
         bird.y = birdy;
@@ -115,6 +122,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         velocityY = 0;
         pipes.clear();
         score = 0;
+        levelUpFlash = 0;
         gameover = false;
         gameStarted = true;
         scoreSaved = false;
@@ -126,9 +134,21 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         requestFocusInWindow();
     }
 
+    private int pipeSpeedForLevel(int level) {
+        return -Math.min(3 + level, 10);
+    }
+
+    private int openingSpaceForLevel(int level) {
+        return Math.max(bheight / 6, bheight / 4 - (level - 1) * 8);
+    }
+
+    private int levelForScore(double s) {
+        return (int) (s / SCORE_PER_LEVEL) + 1;
+    }
+
     public void placePipes() {
         int randomPipeY = (int) (pipeY - pipeheight / 4 - Math.random() * (pipeheight / 2));
-        int openingSpace = bheight / 4;
+        int openingSpace = openingSpaceForLevel(currentLevel);
 
         Pipe topPipe = new Pipe(topimg);
         topPipe.y = randomPipeY;
@@ -170,7 +190,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
             g.drawString("Game Over", 230, 150);
 
             g.setFont(new Font("Arial", Font.BOLD, 24));
-            g.drawString(playerName + " - Score: " + (int) score, 200, 200);
+            g.drawString(playerName + " | Level " + currentLevel + " | Score: " + (int) score, 140, 200);
 
             long seconds = gameDurationMs / 1000;
             g.setFont(new Font("Arial", Font.PLAIN, 20));
@@ -180,7 +200,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
 
             if (scoreDb != null) {
                 try {
-                    List<Document> topScores = scoreDb.getTopScores(5);
+                    List<Document> topScores = scoreDb.getTopScores(3);
                     if (!topScores.isEmpty()) {
                         g.setFont(new Font("Arial", Font.BOLD, 22));
                         g.drawString("Leaderboard:", 240, 340);
@@ -200,6 +220,19 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
             }
         } else {
             g.drawString("" + (int) score, 20, 50);
+
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.setColor(new Color(116, 185, 255));
+            g.drawString("LEVEL " + currentLevel, 20, 78);
+
+            if (levelUpFlash > 0) {
+                g.setFont(new Font("Arial", Font.BOLD, 40));
+                g.setColor(new Color(253, 203, 110));
+                g.drawString("LEVEL UP!", 235, bheight / 2 - 40);
+                g.setFont(new Font("Arial", Font.BOLD, 22));
+                g.drawString("Level " + currentLevel, 295, bheight / 2);
+                levelUpFlash--;
+            }
         }
     }
 
@@ -221,6 +254,20 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
             if (!pipe.passed && bird.x > pipe.x + pipe.width) {
                 pipe.passed = true;
                 score += 0.5;
+
+                int newLevel = levelForScore(score);
+                if (newLevel > currentLevel) {
+                    currentLevel = newLevel;
+                    velocityX = pipeSpeedForLevel(currentLevel);
+                    levelUpFlash = 45;
+                    if (scoreDb != null) {
+                        try {
+                            scoreDb.saveLevel(playerEmail, currentLevel);
+                        } catch (Exception ex) {
+                            System.err.println("Failed to save level: " + ex.getMessage());
+                        }
+                    }
+                }
             }
 
             if (collision(bird, pipe)) {
@@ -254,6 +301,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
                 scoreSaved = true;
                 try {
                     scoreDb.saveScore(playerName, playerEmail, score, gameDurationMs);
+                    scoreDb.saveLevel(playerEmail, currentLevel);
                 } catch (Exception ex) {
                     System.err.println("Failed to save score: " + ex.getMessage());
                 }
@@ -269,14 +317,16 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     public void keyPressed(KeyEvent e) {
         if (!gameStarted) return;
 
-        if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP) {
-            velocityY = -9;
+        if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_ENTER) {
+            velocityY = -11;
 
             if (gameover) {
                 bird.y = birdy;
                 velocityY = 0;
                 pipes.clear();
                 score = 0;
+                levelUpFlash = 0;
+                velocityX = pipeSpeedForLevel(currentLevel);
                 gameover = false;
                 scoreSaved = false;
                 gameloop.start();
