@@ -57,6 +57,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     int gravity = 1;
 
     public static final int SCORE_PER_LEVEL = 5;
+    private static final int COUNTDOWN_SECONDS = 3;
     int currentLevel = 1;
     int levelUpFlash = 0;
 
@@ -67,6 +68,9 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
 
     boolean gameStarted = false;
     boolean gameover = false;
+
+    boolean countdownActive = false;
+    int countdown = 3;
 
     double score = 0;
 
@@ -127,9 +131,11 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         gameStarted = true;
         scoreSaved = false;
 
+        countdownActive = true;
+        countdown = COUNTDOWN_SECONDS;
+
         gameloop = new Timer(1000 / 60, this);
         gameloop.start();
-        placePipeTimer.start();
         gameStartTime = System.currentTimeMillis();
         requestFocusInWindow();
     }
@@ -180,6 +186,18 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         // Score
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 32));
+
+        if (countdownActive) {
+            g.setColor(new Color(0, 0, 0, 120));
+            g.fillRect(0, 0, bwidth, bheight);
+
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 34));
+            g.drawString("Get Ready!", 235, bheight / 2 - 40);
+
+            g.setFont(new Font("Arial", Font.BOLD, 60));
+            g.drawString("" + Math.max(countdown, 0), bwidth / 2 - 20, bheight / 2 + 40);
+        }
 
         if (gameover) {
             g.setColor(new Color(0, 0, 0, 150));
@@ -289,7 +307,16 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        move();
+        if (countdownActive) {
+            long elapsed = (System.currentTimeMillis() - gameStartTime) / 1000;
+            countdown = (int) (COUNTDOWN_SECONDS - elapsed);
+            if (countdown <= 0) {
+                countdownActive = false;
+                placePipeTimer.start();
+            }
+        } else {
+            move();
+        }
         repaint();
 
         if (gameover) {
@@ -316,6 +343,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         if (!gameStarted) return;
+        if (countdownActive) return;
 
         if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_ENTER) {
             velocityY = -11;
@@ -329,8 +357,11 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
                 velocityX = pipeSpeedForLevel(currentLevel);
                 gameover = false;
                 scoreSaved = false;
+
+                countdownActive = true;
+                countdown = COUNTDOWN_SECONDS;
+
                 gameloop.start();
-                placePipeTimer.start();
                 gameStartTime = System.currentTimeMillis();
             }
         }

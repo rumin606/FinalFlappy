@@ -27,6 +27,7 @@ public class ScoreDatabase {
         String uri = props.getProperty("mongodb.uri");
         String dbName = props.getProperty("mongodb.database");
         String collName = props.getProperty("mongodb.collection");
+        String playersCollName = props.getProperty("mongodb.players.collection", "players");
 
         MongoClient client = MongoClients.create(MongoClientSettings.builder()
                 .applyConnectionString(new ConnectionString(uri))
@@ -34,7 +35,7 @@ public class ScoreDatabase {
 
         MongoDatabase db = client.getDatabase(dbName);
         scoresCollection = db.getCollection(collName);
-        playersCollection = db.getCollection("players");
+        playersCollection = db.getCollection(playersCollName);
     }
 
     public void savePlayer(String name, String email, String phone, String password) {
@@ -126,5 +127,32 @@ public class ScoreDatabase {
                 .limit(limit)
                 .into(topScores);
         return topScores;
+    }
+
+    public List<Document> getAllPlayers() {
+        List<Document> players = new ArrayList<>();
+        playersCollection.find()
+                .sort(new Document("createdAt", 1))
+                .into(players);
+        return players;
+    }
+
+    public void deletePlayer(String email) {
+        playersCollection.deleteMany(new Document("email", email));
+        scoresCollection.deleteMany(new Document("playerEmail", email));
+    }
+
+    public static boolean authenticateAdmin(String username, String password) {
+        try {
+            Properties props = new Properties();
+            try (InputStream is = ScoreDatabase.class.getClassLoader().getResourceAsStream("config.properties")) {
+                props.load(is);
+            }
+            String adminUser = props.getProperty("admin.username", "admin");
+            String adminPass = props.getProperty("admin.password", "admin");
+            return adminUser.equals(username) && adminPass.equals(password);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

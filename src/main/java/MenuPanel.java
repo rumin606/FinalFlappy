@@ -1,8 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.List;
+import org.bson.Document;
 
 public class MenuPanel extends JPanel implements KeyListener {
 
@@ -29,6 +28,12 @@ public class MenuPanel extends JPanel implements KeyListener {
     private final JLabel playerNameLabel;
     private final JLabel hintLabel;
 
+    private final JLabel statsGamesLabel;
+    private final JLabel statsBestLabel;
+    private final JLabel statsTotalLabel;
+    private final JLabel statsLevelLabel;
+    private final JLabel statsTimeLabel;
+
     private final ActionListener onPlay;
     private final ActionListener onLogout;
 
@@ -36,7 +41,7 @@ public class MenuPanel extends JPanel implements KeyListener {
     private int playerLevel = 1;
 
     public MenuPanel(int width, int height, ActionListener onPlay, ActionListener onLogout,
-                     ActionListener onGoToLogin, ActionListener onGoToSignup) {
+                     ActionListener onAdmin) {
         this.onPlay = onPlay;
         this.onLogout = onLogout;
         setPreferredSize(new Dimension(width, height));
@@ -65,80 +70,104 @@ public class MenuPanel extends JPanel implements KeyListener {
         };
 
         int centerX = width / 2;
+        int cardX = centerX + 25;
+        int cardW = 300;
 
-        JButton loginNavBtn = new JButton("Login");
-        loginNavBtn.setBounds(centerX - 110, 8, 90, 28);
-        loginNavBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        loginNavBtn.setBackground(NAV_BTN_COLOR);
-        loginNavBtn.setForeground(MUTED_TEXT);
-        loginNavBtn.setFocusPainted(false);
-        loginNavBtn.setBorder(BorderFactory.createEmptyBorder());
-        loginNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        loginNavBtn.addActionListener(e -> onGoToLogin.actionPerformed(null));
-        add(loginNavBtn);
-
-        JButton signupNavBtn = new JButton("Signup");
-        signupNavBtn.setBounds(centerX + 20, 8, 90, 28);
-        signupNavBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        signupNavBtn.setBackground(NAV_BTN_COLOR);
-        signupNavBtn.setForeground(MUTED_TEXT);
-        signupNavBtn.setFocusPainted(false);
-        signupNavBtn.setBorder(BorderFactory.createEmptyBorder());
-        signupNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        signupNavBtn.addActionListener(e -> onGoToSignup.actionPerformed(null));
-        add(signupNavBtn);
-
-        JLabel titleLabel = new JLabel("CUSTOMIZE YOUR GAME", SwingConstants.CENTER);
-        titleLabel.setBounds(0, 45, width, 45);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
+        JLabel titleLabel = new JLabel("", SwingConstants.CENTER);
+        titleLabel.setBounds(0, 30, width, 40);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
         titleLabel.setForeground(ACCENT_COLOR);
         add(titleLabel);
 
         playerNameLabel = new JLabel("", SwingConstants.CENTER);
-        playerNameLabel.setBounds(0, 85, width, 25);
+        playerNameLabel.setBounds(0, 10, width, 25);
         playerNameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         playerNameLabel.setForeground(MUTED_TEXT);
         add(playerNameLabel);
 
         JLabel birdTitle = new JLabel("Select Bird", SwingConstants.CENTER);
-        birdTitle.setBounds(0, 120, width, 30);
-        birdTitle.setFont(new Font("Arial", Font.BOLD, 22));
+        birdTitle.setBounds(-145, 108, width, 25);
+        birdTitle.setFont(new Font("Arial", Font.BOLD, 20));
         birdTitle.setForeground(TEXT_COLOR);
         add(birdTitle);
 
         birdNameLabel = new JLabel(birdNames[selectedBird], SwingConstants.CENTER);
-        birdNameLabel.setBounds(0, 280, width, 25);
+        birdNameLabel.setBounds(-145, 325, width, 22);
         birdNameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         birdNameLabel.setForeground(TEXT_COLOR);
         add(birdNameLabel);
 
         JLabel bgTitle = new JLabel("Select Background", SwingConstants.CENTER);
-        bgTitle.setBounds(0, 325, width, 30);
-        bgTitle.setFont(new Font("Arial", Font.BOLD, 22));
+        bgTitle.setBounds(-145, 348, width, 25);
+        bgTitle.setFont(new Font("Arial", Font.BOLD, 20));
         bgTitle.setForeground(TEXT_COLOR);
         add(bgTitle);
 
         bgNameLabel = new JLabel(bgNames[selectedBackground], SwingConstants.CENTER);
-        bgNameLabel.setBounds(0, 490, width, 30);
-        bgNameLabel.setFont(new Font("Arial", Font.BOLD, 22));
+        bgNameLabel.setBounds(-145, 520, width, 25);
+        bgNameLabel.setFont(new Font("Arial", Font.BOLD, 18));
         bgNameLabel.setForeground(TEXT_COLOR);
         add(bgNameLabel);
 
+        JLabel scoreboardTitle = new JLabel("SCOREBOARD", SwingConstants.CENTER);
+        scoreboardTitle.setBounds(cardX, 118, cardW, 28);
+        scoreboardTitle.setFont(new Font("Arial", Font.BOLD, 20));
+        scoreboardTitle.setForeground(ACCENT_COLOR);
+        add(scoreboardTitle);
+
+        statsGamesLabel = new JLabel("0");
+        statsBestLabel = new JLabel("0");
+        statsTotalLabel = new JLabel("0");
+        statsLevelLabel = new JLabel("1");
+        statsTimeLabel = new JLabel("0m 0s");
+
+        createStatRow("Games Played", statsGamesLabel, 170, cardX, cardW);
+        createStatRow("Best Score", statsBestLabel, 212, cardX, cardW);
+        createStatRow("Total Score", statsTotalLabel, 254, cardX, cardW);
+        createStatRow("Current Level", statsLevelLabel, 296, cardX, cardW);
+        createStatRow("Time Played", statsTimeLabel, 338, cardX, cardW);
+
         hintLabel = new JLabel("Left/Right: change bird  |  Tab: switch section  |  Enter/Space: play", SwingConstants.CENTER);
-        hintLabel.setBounds(0, height - 65, width, 25);
+        hintLabel.setBounds(0, height - 72, width, 25);
         hintLabel.setFont(new Font("Arial", Font.ITALIC, 13));
         hintLabel.setForeground(MUTED_TEXT);
         add(hintLabel);
 
+        JButton adminButton = new JButton("Admin Panel");
+        adminButton.setBounds(centerX - 210, height - 40, 120, 32);
+        adminButton.setFont(new Font("Arial", Font.BOLD, 13));
+        adminButton.setBackground(new Color(162, 89, 255));
+        adminButton.setForeground(TEXT_COLOR);
+        adminButton.setFocusPainted(false);
+        adminButton.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        adminButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        adminButton.addActionListener(e -> onAdmin.actionPerformed(null));
+        add(adminButton);
+
         JButton logoutButton = new JButton("Logout");
-        logoutButton.setBounds(width / 2 - 60, height - 38, 120, 30);
-        logoutButton.setFont(new Font("Arial", Font.BOLD, 14));
+        logoutButton.setBounds(centerX + 90, height - 40, 120, 32);
+        logoutButton.setFont(new Font("Arial", Font.BOLD, 13));
         logoutButton.setBackground(new Color(255, 71, 87));
         logoutButton.setForeground(TEXT_COLOR);
         logoutButton.setFocusPainted(false);
         logoutButton.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         logoutButton.addActionListener(e -> onLogout.actionPerformed(null));
         add(logoutButton);
+    }
+
+    private void createStatRow(String name, JLabel valueLabel, int y, int cardX, int cardW) {
+        JLabel nameLabel = new JLabel(name, SwingConstants.LEFT);
+        nameLabel.setBounds(cardX + 25, y, cardW - 130, 24);
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        nameLabel.setForeground(MUTED_TEXT);
+        add(nameLabel);
+
+        valueLabel.setBounds(cardX + cardW - 105, y, 80, 24);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        valueLabel.setForeground(TEXT_COLOR);
+        valueLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        add(valueLabel);
     }
 
     @Override
@@ -198,9 +227,9 @@ public class MenuPanel extends JPanel implements KeyListener {
         Graphics2D g2 = (Graphics2D) g;
         int centerX = getWidth() / 2;
 
-        int birdBoxX = centerX - 90;
-        int birdBoxY = 160;
-        int birdBoxSize = 180;
+        int birdBoxX = centerX - 230;
+        int birdBoxY = 150;
+        int birdBoxSize = 170;
 
         Color birdBorder = (focusedSection == 0) ? FOCUS_COLOR : SELECTED_BORDER;
         int birdStroke = (focusedSection == 0) ? 4 : 3;
@@ -211,12 +240,12 @@ public class MenuPanel extends JPanel implements KeyListener {
         g2.setStroke(new BasicStroke(birdStroke));
         g2.drawRoundRect(birdBoxX - 5, birdBoxY - 5, birdBoxSize + 10, birdBoxSize + 10, 15, 15);
 
-        g2.drawImage(birdImages[selectedBird], birdBoxX + 40, birdBoxY + 25, 100, 100, null);
+        g2.drawImage(birdImages[selectedBird], birdBoxX + 35, birdBoxY + 35, 100, 100, null);
 
-        int bgBoxX = centerX - 90;
-        int bgBoxY = 365;
-        int bgBoxW = 180;
-        int bgBoxH = 140;
+        int bgBoxX = centerX - 230;
+        int bgBoxY = 390;
+        int bgBoxW = 170;
+        int bgBoxH = 170;
 
         Color bgBorder = (focusedSection == 1) ? FOCUS_COLOR : SELECTED_BORDER;
         int bgStroke = (focusedSection == 1) ? 4 : 3;
@@ -228,6 +257,16 @@ public class MenuPanel extends JPanel implements KeyListener {
         g2.drawRoundRect(bgBoxX - 7, bgBoxY - 7, bgBoxW + 14, bgBoxH + 14, 15, 15);
 
         g2.drawImage(backgroundImages[selectedBackground], bgBoxX, bgBoxY, bgBoxW, bgBoxH, null);
+
+        int cardX = centerX + 25;
+        int cardY = 108;
+        int cardW = 300;
+        int cardH = 405;
+        g2.setColor(new Color(12, 20, 32, 200));
+        g2.fillRoundRect(cardX, cardY, cardW, cardH, 20, 20);
+        g2.setColor(new Color(255, 255, 255, 50));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(cardX, cardY, cardW, cardH, 20, 20);
     }
 
     public int getSelectedBird() { return selectedBird; }
@@ -247,8 +286,32 @@ public class MenuPanel extends JPanel implements KeyListener {
 
     public int getPlayerLevel() { return playerLevel; }
 
+    public void setPlayerStats(Document player) {
+        if (player == null) {
+            statsGamesLabel.setText("0");
+            statsBestLabel.setText("0");
+            statsTotalLabel.setText("0");
+            statsLevelLabel.setText("1");
+            statsTimeLabel.setText("0m 0s");
+            return;
+        }
+        statsGamesLabel.setText(String.valueOf(player.getInteger("gamesPlayed", 0)));
+        statsBestLabel.setText(String.valueOf(player.getInteger("bestScore", 0)));
+        statsTotalLabel.setText(String.valueOf(player.getInteger("totalScore", 0)));
+        statsLevelLabel.setText(String.valueOf(player.getInteger("currentLevel", 1)));
+        Long totalDuration = player.getLong("totalDuration");
+        statsTimeLabel.setText(formatDuration(totalDuration == null ? 0 : totalDuration));
+    }
+
+    private String formatDuration(long ms) {
+        long totalSeconds = ms / 1000;
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return minutes + "m " + seconds + "s";
+    }
+
     private void updatePlayerLabel() {
-        playerNameLabel.setText("Playing as: " + playerName + "   |   Level: " + playerLevel);
+        playerNameLabel.setText("Playing as: " + playerName /*+ "   |   Level: " + playerLevel*/);
     }
 
     public void resetSelections() {
