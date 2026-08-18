@@ -28,6 +28,12 @@ public class App {
 
             ActionListener onLogin = e -> {
                 LoginPanel login = loginHolder[0];
+                if ("admin".equals(login.getPlayerEmail()) && "admin123".equals(login.getPlayerPassword())) {
+                    adminHolder[0].refresh();
+                    cardLayout.show(cardPanel, ADMIN_CARD);
+                    SwingUtilities.invokeLater(() -> adminHolder[0].requestFocusInWindow());
+                    return;
+                }
                 try {
                     ScoreDatabase db = new ScoreDatabase();
                     org.bson.Document player = db.authenticatePlayer(
@@ -82,7 +88,9 @@ public class App {
                         menu.getBackgroundImage(menu.getSelectedBackground()),
                         login.getPlayerName(),
                         login.getPlayerEmail(),
-                        login.getPlayerLevel()
+                        login.getPlayerLevel(),
+                        menu.getBirdName(menu.getSelectedBird()),
+                        menu.getBgName(menu.getSelectedBackground())
                 );
                 cardLayout.show(cardPanel, GAME_CARD);
                 SwingUtilities.invokeLater(() -> game.requestFocusInWindow());
@@ -95,19 +103,10 @@ public class App {
                 SwingUtilities.invokeLater(() -> loginHolder[0].focusFirstField());
             };
 
-            ActionListener onAdmin = e -> {
-                if (!showAdminLoginDialog(frame)) {
-                    return;
-                }
-                adminHolder[0].refresh();
-                cardLayout.show(cardPanel, ADMIN_CARD);
-                SwingUtilities.invokeLater(() -> adminHolder[0].requestFocusInWindow());
-            };
-
             LoginPanel loginPanel = new LoginPanel(WIDTH, HEIGHT, onLogin, onSignup);
             loginHolder[0] = loginPanel;
 
-            MenuPanel menuPanel = new MenuPanel(WIDTH, HEIGHT, onPlay, onLogout, onAdmin);
+            MenuPanel menuPanel = new MenuPanel(WIDTH, HEIGHT, onPlay, onLogout);
             menuHolder[0] = menuPanel;
 
             FlappyBird gamePanel = new FlappyBird();
@@ -165,50 +164,5 @@ public class App {
             cardLayout.show(cardPanel, LOGIN_CARD);
             SwingUtilities.invokeLater(() -> loginPanel.focusFirstField());
         });
-    }
-
-    private static boolean showAdminLoginDialog(JFrame parent) {
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(new Color(45, 52, 54));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.anchor = GridBagConstraints.WEST;
-
-        JLabel userLabel = new JLabel("Admin Username");
-        userLabel.setForeground(Color.WHITE);
-        JTextField userField = new JTextField(15);
-        userField.setFont(new Font("Arial", Font.PLAIN, 14));
-
-        JLabel passLabel = new JLabel("Admin Password");
-        passLabel.setForeground(Color.WHITE);
-        JPasswordField passField = new JPasswordField(15);
-        passField.setFont(new Font("Arial", Font.PLAIN, 14));
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        form.add(userLabel, gbc);
-        gbc.gridx = 1;
-        form.add(userField, gbc);
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        form.add(passLabel, gbc);
-        gbc.gridx = 1;
-        form.add(passField, gbc);
-
-        int option = JOptionPane.showConfirmDialog(
-                parent, form, "Admin Login",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (option != JOptionPane.OK_OPTION) {
-            return false;
-        }
-
-        String username = userField.getText().trim();
-        String password = new String(passField.getPassword());
-        if (!ScoreDatabase.authenticateAdmin(username, password)) {
-            JOptionPane.showMessageDialog(parent, "Invalid admin username or password.",
-                    "Access Denied", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        return true;
     }
 }

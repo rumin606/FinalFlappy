@@ -70,32 +70,42 @@ public class ScoreDatabase {
         return playersCollection.find(new Document("email", email)).first() != null;
     }
 
-    public void saveScore(String playerName, String playerEmail, double score, long durationMs) {
+    public void saveScore(String playerName, String playerEmail, double score, long durationMs,
+                          String birdName, String bgName) {
+        String comboKey = birdName + "_" + bgName;
+        String comboField = "comboStats." + comboKey;
+
         Document scoreDoc = new Document("playerName", playerName)
                 .append("playerEmail", playerEmail)
                 .append("score", (int) score)
                 .append("durationMs", durationMs)
+                .append("birdName", birdName)
+                .append("bgName", bgName)
                 .append("timestamp", System.currentTimeMillis());
         scoresCollection.insertOne(scoreDoc);
 
         playersCollection.updateOne(
                 new Document("email", playerEmail),
-                new Document("$inc", new Document("gamesPlayed", 1).append("totalScore", (int) score).append("totalDuration", durationMs))
+                new Document("$inc", new Document(comboField + ".gamesPlayed", 1)
+                        .append(comboField + ".totalScore", (int) score)
+                        .append(comboField + ".totalDuration", durationMs))
         );
 
         int finalLevel = (int) score / FlappyBird.SCORE_PER_LEVEL + 1;
         playersCollection.updateOne(
                 new Document("email", playerEmail),
-                new Document("$max", new Document("currentLevel", Math.max(1, finalLevel)))
+                new Document("$max", new Document(comboField + ".currentLevel", Math.max(1, finalLevel)))
         );
 
         Document player = playersCollection.find(new Document("email", playerEmail)).first();
         if (player != null) {
-            int best = player.getInteger("bestScore", 0);
+            Document comboStats = player.get("comboStats", new Document());
+            Document combo = comboStats.get(comboKey, new Document());
+            int best = combo.getInteger("bestScore", 0);
             if ((int) score > best) {
                 playersCollection.updateOne(
                         new Document("email", playerEmail),
-                        new Document("$set", new Document("bestScore", (int) score))
+                        new Document("$set", new Document(comboField + ".bestScore", (int) score))
                 );
             }
         }
@@ -103,6 +113,19 @@ public class ScoreDatabase {
 
     public Document getPlayer(String email) {
         return playersCollection.find(new Document("email", email)).first();
+    }
+
+    public Document getComboStats(String email, String birdName, String bgName) {
+        Document player = playersCollection.find(new Document("email", email)).first();
+        if (player == null) return null;
+        Document comboStats = player.get("comboStats", new Document());
+        String comboKey = birdName + "_" + bgName;
+        return comboStats.get(comboKey, new Document()
+                .append("gamesPlayed", 0)
+                .append("bestScore", 0)
+                .append("totalScore", 0)
+                .append("totalDuration", 0L)
+                .append("currentLevel", 1));
     }
 
     public int getPlayerLevel(String email) {
@@ -113,10 +136,12 @@ public class ScoreDatabase {
         return 1;
     }
 
-    public void saveLevel(String email, int level) {
+    public void saveLevel(String email, int level, String birdName, String bgName) {
+        String comboKey = birdName + "_" + bgName;
+        String comboField = "comboStats." + comboKey + ".currentLevel";
         playersCollection.updateOne(
                 new Document("email", email),
-                new Document("$max", new Document("currentLevel", Math.max(1, level)))
+                new Document("$max", new Document(comboField, Math.max(1, level)))
         );
     }
 

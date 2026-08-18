@@ -29,6 +29,8 @@ public class MenuPanel extends JPanel implements KeyListener {
     private final JLabel hintLabel;
 
     private final JLabel statsGamesLabel;
+    private final JLabel statsBirdLabel;
+    private final JLabel statsBgLabel;
     private final JLabel statsBestLabel;
     private final JLabel statsTotalLabel;
     private final JLabel statsLevelLabel;
@@ -39,9 +41,9 @@ public class MenuPanel extends JPanel implements KeyListener {
 
     private String playerName = "";
     private int playerLevel = 1;
+    private Document playerDoc = null;
 
-    public MenuPanel(int width, int height, ActionListener onPlay, ActionListener onLogout,
-                     ActionListener onAdmin) {
+    public MenuPanel(int width, int height, ActionListener onPlay, ActionListener onLogout) {
         this.onPlay = onPlay;
         this.onLogout = onLogout;
         setPreferredSize(new Dimension(width, height));
@@ -116,16 +118,20 @@ public class MenuPanel extends JPanel implements KeyListener {
         add(scoreboardTitle);
 
         statsGamesLabel = new JLabel("0");
+        statsBirdLabel = new JLabel(birdNames[selectedBird]);
+        statsBgLabel = new JLabel(bgNames[selectedBackground]);
         statsBestLabel = new JLabel("0");
         statsTotalLabel = new JLabel("0");
         statsLevelLabel = new JLabel("1");
         statsTimeLabel = new JLabel("0m 0s");
 
-        createStatRow("Games Played", statsGamesLabel, 170, cardX, cardW);
-        createStatRow("Best Score", statsBestLabel, 212, cardX, cardW);
-        createStatRow("Total Score", statsTotalLabel, 254, cardX, cardW);
-        createStatRow("Current Level", statsLevelLabel, 296, cardX, cardW);
-        createStatRow("Time Played", statsTimeLabel, 338, cardX, cardW);
+        createStatRow("Games Played", statsGamesLabel, 165, cardX, cardW);
+        createStatRow("Bird", statsBirdLabel, 197, cardX, cardW);
+        createStatRow("Background", statsBgLabel, 229, cardX, cardW);
+        createStatRow("Best Score", statsBestLabel, 261, cardX, cardW);
+        createStatRow("Total Score", statsTotalLabel, 293, cardX, cardW);
+        createStatRow("Current Level", statsLevelLabel, 325, cardX, cardW);
+        createStatRow("Time Played", statsTimeLabel, 357, cardX, cardW);
 
         hintLabel = new JLabel("Left/Right: change bird  |  Tab: switch section  |  Enter/Space: play", SwingConstants.CENTER);
         hintLabel.setBounds(0, height - 72, width, 25);
@@ -133,19 +139,8 @@ public class MenuPanel extends JPanel implements KeyListener {
         hintLabel.setForeground(MUTED_TEXT);
         add(hintLabel);
 
-        JButton adminButton = new JButton("Admin Panel");
-        adminButton.setBounds(centerX - 210, height - 40, 120, 32);
-        adminButton.setFont(new Font("Arial", Font.BOLD, 13));
-        adminButton.setBackground(new Color(162, 89, 255));
-        adminButton.setForeground(TEXT_COLOR);
-        adminButton.setFocusPainted(false);
-        adminButton.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
-        adminButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        adminButton.addActionListener(e -> onAdmin.actionPerformed(null));
-        add(adminButton);
-
         JButton logoutButton = new JButton("Logout");
-        logoutButton.setBounds(centerX + 90, height - 40, 120, 32);
+        logoutButton.setBounds(centerX - 60, height - 40, 120, 32);
         logoutButton.setFont(new Font("Arial", Font.BOLD, 13));
         logoutButton.setBackground(new Color(255, 71, 87));
         logoutButton.setForeground(TEXT_COLOR);
@@ -186,12 +181,16 @@ public class MenuPanel extends JPanel implements KeyListener {
                 selectedBird--;
                 if (selectedBird < 0) selectedBird = birdImages.length - 1;
                 birdNameLabel.setText(birdNames[selectedBird]);
+                statsBirdLabel.setText(birdNames[selectedBird]);
+                updateComboStats();
                 repaint();
             }
             if (key == KeyEvent.VK_RIGHT) {
                 selectedBird++;
                 if (selectedBird >= birdImages.length) selectedBird = 0;
                 birdNameLabel.setText(birdNames[selectedBird]);
+                statsBirdLabel.setText(birdNames[selectedBird]);
+                updateComboStats();
                 repaint();
             }
         } else {
@@ -199,12 +198,16 @@ public class MenuPanel extends JPanel implements KeyListener {
                 selectedBackground--;
                 if (selectedBackground < 0) selectedBackground = backgroundImages.length - 1;
                 bgNameLabel.setText(bgNames[selectedBackground]);
+                statsBgLabel.setText(bgNames[selectedBackground]);
+                updateComboStats();
                 repaint();
             }
             if (key == KeyEvent.VK_RIGHT) {
                 selectedBackground++;
                 if (selectedBackground >= backgroundImages.length) selectedBackground = 0;
                 bgNameLabel.setText(bgNames[selectedBackground]);
+                statsBgLabel.setText(bgNames[selectedBackground]);
+                updateComboStats();
                 repaint();
             }
         }
@@ -273,6 +276,8 @@ public class MenuPanel extends JPanel implements KeyListener {
     public int getSelectedBackground() { return selectedBackground; }
     public Image getBirdImage(int index) { return birdImages[index]; }
     public Image getBackgroundImage(int index) { return backgroundImages[index]; }
+    public String getBirdName(int index) { return birdNames[index]; }
+    public String getBgName(int index) { return bgNames[index]; }
 
     public void setPlayerName(String name) {
         this.playerName = name == null ? "" : name;
@@ -287,7 +292,12 @@ public class MenuPanel extends JPanel implements KeyListener {
     public int getPlayerLevel() { return playerLevel; }
 
     public void setPlayerStats(Document player) {
-        if (player == null) {
+        this.playerDoc = player;
+        updateComboStats();
+    }
+
+    private void updateComboStats() {
+        if (playerDoc == null) {
             statsGamesLabel.setText("0");
             statsBestLabel.setText("0");
             statsTotalLabel.setText("0");
@@ -295,11 +305,14 @@ public class MenuPanel extends JPanel implements KeyListener {
             statsTimeLabel.setText("0m 0s");
             return;
         }
-        statsGamesLabel.setText(String.valueOf(player.getInteger("gamesPlayed", 0)));
-        statsBestLabel.setText(String.valueOf(player.getInteger("bestScore", 0)));
-        statsTotalLabel.setText(String.valueOf(player.getInteger("totalScore", 0)));
-        statsLevelLabel.setText(String.valueOf(player.getInteger("currentLevel", 1)));
-        Long totalDuration = player.getLong("totalDuration");
+        Document comboStats = playerDoc.get("comboStats", new Document());
+        String comboKey = birdNames[selectedBird] + "_" + bgNames[selectedBackground];
+        Document combo = comboStats.get(comboKey, new Document());
+        statsGamesLabel.setText(String.valueOf(combo.getInteger("gamesPlayed", 0)));
+        statsBestLabel.setText(String.valueOf(combo.getInteger("bestScore", 0)));
+        statsTotalLabel.setText(String.valueOf(combo.getInteger("totalScore", 0)));
+        statsLevelLabel.setText(String.valueOf(combo.getInteger("currentLevel", 1)));
+        Long totalDuration = combo.getLong("totalDuration");
         statsTimeLabel.setText(formatDuration(totalDuration == null ? 0 : totalDuration));
     }
 
@@ -320,6 +333,9 @@ public class MenuPanel extends JPanel implements KeyListener {
         focusedSection = 0;
         birdNameLabel.setText(birdNames[0]);
         bgNameLabel.setText(bgNames[0]);
+        statsBirdLabel.setText(birdNames[0]);
+        statsBgLabel.setText(bgNames[0]);
+        updateComboStats();
         repaint();
     }
 }

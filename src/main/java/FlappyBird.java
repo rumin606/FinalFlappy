@@ -76,6 +76,8 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
 
     String playerName = "";
     String playerEmail = "";
+    String birdName = "";
+    String bgName = "";
 
     ScoreDatabase scoreDb;
     boolean scoreSaved = false;
@@ -111,11 +113,14 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
         this.onGameOverCallback = callback;
     }
 
-    public void setupGame(Image birdImg, Image bgImg, String name, String email, int level) {
+    public void setupGame(Image birdImg, Image bgImg, String name, String email, int level,
+                          String birdName, String bgName) {
         this.birdimg = birdImg;
         this.backimg = bgImg;
         this.playerName = name;
         this.playerEmail = email;
+        this.birdName = birdName;
+        this.bgName = bgName;
 
         this.currentLevel = Math.max(1, level);
         velocityX = pipeSpeedForLevel(currentLevel);
@@ -280,7 +285,7 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
                     levelUpFlash = 45;
                     if (scoreDb != null) {
                         try {
-                            scoreDb.saveLevel(playerEmail, currentLevel);
+                            scoreDb.saveLevel(playerEmail, currentLevel, birdName, bgName);
                         } catch (Exception ex) {
                             System.err.println("Failed to save level: " + ex.getMessage());
                         }
@@ -327,8 +332,8 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
             if (!scoreSaved && scoreDb != null) {
                 scoreSaved = true;
                 try {
-                    scoreDb.saveScore(playerName, playerEmail, score, gameDurationMs);
-                    scoreDb.saveLevel(playerEmail, currentLevel);
+                    scoreDb.saveScore(playerName, playerEmail, score, gameDurationMs, birdName, bgName);
+                    scoreDb.saveLevel(playerEmail, currentLevel, birdName, bgName);
                 } catch (Exception ex) {
                     System.err.println("Failed to save score: " + ex.getMessage());
                 }
