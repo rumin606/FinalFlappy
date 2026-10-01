@@ -88,17 +88,28 @@ public class ScoreDatabase {
                 new Document("email", playerEmail),
                 new Document("$inc", new Document(comboField + ".gamesPlayed", 1)
                         .append(comboField + ".totalScore", (int) score)
-                        .append(comboField + ".totalDuration", durationMs))
+                        .append(comboField + ".totalDuration", durationMs)
+                        .append("gamesPlayed", 1)
+                        .append("totalScore", (int) score)
+                        .append("totalDuration", durationMs))
         );
 
         int finalLevel = (int) score / FlappyBird.SCORE_PER_LEVEL + 1;
         playersCollection.updateOne(
                 new Document("email", playerEmail),
-                new Document("$max", new Document(comboField + ".currentLevel", Math.max(1, finalLevel)))
+                new Document("$max", new Document(comboField + ".currentLevel", Math.max(1, finalLevel))
+                        .append("currentLevel", Math.max(1, finalLevel)))
         );
 
         Document player = playersCollection.find(new Document("email", playerEmail)).first();
         if (player != null) {
+            int topBest = player.getInteger("bestScore", 0);
+            if ((int) score > topBest) {
+                playersCollection.updateOne(
+                        new Document("email", playerEmail),
+                        new Document("$set", new Document("bestScore", (int) score))
+                );
+            }
             Document comboStats = player.get("comboStats", new Document());
             Document combo = comboStats.get(comboKey, new Document());
             int best = combo.getInteger("bestScore", 0);
@@ -141,7 +152,8 @@ public class ScoreDatabase {
         String comboField = "comboStats." + comboKey + ".currentLevel";
         playersCollection.updateOne(
                 new Document("email", email),
-                new Document("$max", new Document(comboField, Math.max(1, level)))
+                new Document("$max", new Document(comboField, Math.max(1, level))
+                        .append("currentLevel", Math.max(1, level)))
         );
     }
 

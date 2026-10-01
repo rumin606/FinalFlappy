@@ -4,9 +4,6 @@ import java.awt.event.ActionListener;
 
 public class App {
 
-    private static final int WIDTH = 700;
-    private static final int HEIGHT = 640;
-
     private static final String LOGIN_CARD = "LOGIN";
     private static final String MENU_CARD = "MENU";
     private static final String GAME_CARD = "GAME";
@@ -14,9 +11,17 @@ public class App {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+
             JFrame frame = new JFrame("Flappy Bird");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setResizable(false);
+            frame.setResizable(true);
+            frame.setMinimumSize(new Dimension(900, 640));
+
+            Insets insets = Toolkit.getDefaultToolkit()
+                    .getScreenInsets(frame.getGraphicsConfiguration());
+            frame.setSize(screen.width - insets.left - insets.right,
+                    screen.height - insets.top - insets.bottom);
 
             CardLayout cardLayout = new CardLayout();
             JPanel cardPanel = new JPanel(cardLayout);
@@ -103,16 +108,16 @@ public class App {
                 SwingUtilities.invokeLater(() -> loginHolder[0].focusFirstField());
             };
 
-            LoginPanel loginPanel = new LoginPanel(WIDTH, HEIGHT, onLogin, onSignup);
+            LoginPanel loginPanel = new LoginPanel(screen.width, screen.height, onLogin, onSignup);
             loginHolder[0] = loginPanel;
 
-            MenuPanel menuPanel = new MenuPanel(WIDTH, HEIGHT, onPlay, onLogout);
+            MenuPanel menuPanel = new MenuPanel(screen.width, screen.height, onPlay, onLogout);
             menuHolder[0] = menuPanel;
 
             FlappyBird gamePanel = new FlappyBird();
             gameHolder[0] = gamePanel;
 
-            AdminPanel adminPanel = new AdminPanel(WIDTH, HEIGHT, e -> {
+            AdminPanel adminPanel = new AdminPanel(screen.width, screen.height, e -> {
                 cardLayout.show(cardPanel, MENU_CARD);
                 SwingUtilities.invokeLater(() -> menuHolder[0].requestFocusInWindow());
             });
@@ -157,9 +162,9 @@ public class App {
             cardPanel.add(adminPanel, ADMIN_CARD);
 
             frame.add(cardPanel);
-            frame.pack();
-            frame.setLocationRelativeTo(null);
+            frame.setLocation(0, 0);
             frame.setVisible(true);
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
             cardLayout.show(cardPanel, LOGIN_CARD);
             SwingUtilities.invokeLater(() -> loginPanel.focusFirstField());

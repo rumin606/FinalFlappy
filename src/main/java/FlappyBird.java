@@ -262,7 +262,25 @@ public class FlappyBird extends JPanel implements ActionListener, KeyListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        draw(g);
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+        int w = getWidth();
+        int h = getHeight();
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, w, h);
+        if (w <= 0 || h <= 0) {
+            g2.dispose();
+            return;
+        }
+
+        double scale = Math.min(w / (double) bwidth, h / (double) bheight);
+        g2.translate((w - bwidth * scale) / 2.0, (h - bheight * scale) / 2.0);
+        g2.scale(scale, scale);
+
+        draw(g2);
+        g2.dispose();
     }
 
     public void move() {
